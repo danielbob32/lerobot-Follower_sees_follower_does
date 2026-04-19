@@ -108,17 +108,31 @@ One 8-byte read at address 56 yields all telemetry fields for a motor.
 Speed is captured but not displayed in this iteration; keeping it in `STATE`
 costs nothing and leaves room for a future sparkline.
 
-**Scheduling model — "telemetry tick substitution":**
+**Scheduling model — round-robin telemetry cursor:**
+
+The current teleop loop reads *only leaders* every iteration (followers are
+command-only after init). Telemetry must read from both arms without slowing
+the leader read cadence that drives delta-following.
 
 - A module-level cursor indexes into `LEADER_IDS + FOLLOWER_IDS` (12 entries).
-- On each teleop loop iteration, for the motor at `cursor % 12`, perform an
-  8-byte telemetry read *instead of* the usual 2-byte position read.
-  Extract position normally (delta-following logic is unaffected — it only
-  needs `position`), extract temp/volt/load and call `state.update(...)`.
-  Advance cursor.
-- All other motors that iteration get the usual 2-byte read.
+- On each teleop loop iteration:
+  - For **leaders**, preserve current behavior — one 2-byte position read per
+    leader — *except* when the cursor points to a leader, in which case that
+    leader gets an 8-byte read (addr 56, len 8) instead of the 2-byte read.
+    Position is extracted as today (delta-following unaffected); temp/volt/load
+    are also extracted and pushed to `state.update(...)`.
+  - For **followers**, there is no baseline read. When the cursor points to a
+    follower, perform a dedicated 8-byte read for that one follower; push
+    position + telemetry to `state.update(...)`. Other followers are not read
+    that iteration.
+  - Advance the cursor (`cursor = (cursor + 1) % 12`).
 - At a natural loop rate of ~500 Hz, full 12-motor telemetry refresh completes
   in ~24 ms. Browser polls at 1 Hz, so data is always fresh.
+- Per-iteration added bus cost: at most one 8-byte response (~80 µs at 1 Mbps).
+  When the cursor points at a leader, cost is strictly *lower* than replacing
+  nothing (we swap one 2-byte read for one 8-byte read: +60 µs). When the
+  cursor points at a follower, cost is one full extra read (~80 µs on the
+  follower bus). Both are negligible vs. the existing `time.sleep(0.002)`.
 - Goal position: for followers, the main loop already holds
   `follower_targets[i]`, so `state.update(fid, goal=follower_targets[i])`
   is called any time the target changes. For leaders, goal is never set.
