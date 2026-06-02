@@ -1,0 +1,59 @@
+{
+  "tick_per_rad": 651.8986469044033,
+  "joints": [
+    {
+      "name": "shoulder_pan",
+      "id": 1,
+      "tick_zero": 2048,
+      "tick_sign": 1,
+      "tick_min": 512,
+      "tick_max": 3584,
+      "angle_offset_rad": 0.0
+    },
+    {
+      "name": "shoulder_lift",
+      "id": 2,
+      "tick_zero": 2048,
+      "tick_sign": 1,
+      "tick_min": 512,
+      "tick_max": 3584,
+      "angle_offset_rad": 0.0
+    },
+    {
+      "name": "elbow_flex",
+      "id": 3,
+      "tick_zero": 2048,
+      "tick_sign": 1,
+      "tick_min": 512,
+      "tick_max": 3584,
+      "angle_offset_rad": 0.0
+    },
+    {
+      "name": "wrist_flex",
+      "id": 4,
+      "tick_zero": 2048,
+      "tick_sign": 1,
+      "tick_min": 512,
+      "tick_max": 3584,
+      "angle_offset_rad": 0.0
+    },
+    {
+      "name": "wrist_roll",
+      "id": 6,
+      "tick_zero": 2048,
+      "tick_sign": 1,
+      "tick_min": 0,
+      "tick_max": 4095,
+      "angle_offset_rad": 0.0
+    },
+    {
+      "name": "gripper",
+      "id": 5,
+      "tick_zero": 2048,
+      "tick_sign": 1,
+      "tick_min": 1500,
+      "tick_max": 2700,
+      "angle_offset_rad": 0.0
+    }
+  ]
+}

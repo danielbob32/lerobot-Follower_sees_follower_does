@@ -1,0 +1,322 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8"/>
+<title>SO-101 Telemetry</title>
+<style>
+:root {
+  --bg: #0f1115;
+  --panel: #161a21;
+  --border: #262b35;
+  --fg: #d8dde5;
+  --dim: #7b8496;
+  --ok: #58d068;
+  --warn: #f0b429;
+  --err: #e5484d;
+  --accent: #4c8df6;
+}
+* { box-sizing: border-box; }
+body {
+  background: var(--bg);
+  color: var(--fg);
+  font: 13px/1.4 ui-monospace, "SF Mono", Menlo, Consolas, monospace;
+  margin: 0;
+  padding: 24px;
+}
+.wrap { max-width: 940px; margin: 0 auto; }
+.sim-panel {
+  background: var(--panel);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  padding: 0;
+  overflow: hidden;
+  position: relative;
+  margin-bottom: 24px;
+}
+#viewport {
+  width: 100%;
+  height: 400px;
+  display: block;
+}
+.sim-status {
+  position: absolute;
+  top: 8px;
+  left: 10px;
+  color: var(--dim);
+  font-size: 11px;
+  pointer-events: none;
+}
+.sim-status.err { color: var(--err); }
+.sim-layout { display: flex; gap: 0; }
+.sim-viewport-wrap { flex: 1; position: relative; }
+.sim-side {
+  width: 180px; padding: 12px; display: flex; flex-direction: column;
+  gap: 12px; background: #1a1e26; border-left: 1px solid var(--border);
+}
+.sim-side label {
+  color: var(--dim); font-size: 11px; text-transform: uppercase;
+  display: flex; flex-direction: column; gap: 4px;
+}
+.sim-side input[type="range"] { width: 100%; }
+.engage {
+  padding: 10px; border-radius: 4px; border: none; color: white;
+  font: inherit; font-weight: 600; letter-spacing: 0.3px; cursor: pointer;
+  background: #3a8f3a; margin-top: auto;
+}
+.engage.active { background: #c24141; }
+.engage:disabled { background: #444; cursor: not-allowed; }
+.align-section {
+  border-top: 1px solid var(--border); padding-top: 10px; margin-top: 4px;
+}
+.align-section summary {
+  color: var(--dim); font-size: 11px; text-transform: uppercase;
+  letter-spacing: 0.5px; cursor: pointer; user-select: none;
+}
+.align-section summary:hover { color: var(--fg); }
+#align-sliders { display: flex; flex-direction: column; gap: 8px; margin-top: 10px; }
+#align-sliders .align-row {
+  display: flex; flex-direction: column; gap: 2px;
+}
+#align-sliders label {
+  display: flex; justify-content: space-between; color: var(--dim);
+  font-size: 10px; text-transform: uppercase;
+}
+#align-sliders input[type="range"] { width: 100%; }
+.align-buttons { display: flex; gap: 6px; margin-top: 10px; }
+.align-save, .align-reset {
+  flex: 1; padding: 6px 10px; border-radius: 4px; border: none;
+  color: white; font: inherit; font-size: 11px; cursor: pointer;
+}
+.align-save { background: #3a5f8f; }
+.align-save:hover { background: #4c7fb0; }
+.align-reset { background: #555a66; }
+.align-reset:hover { background: #6b7280; }
+.align-status { color: var(--dim); font-size: 10px; margin-top: 6px; min-height: 14px; }
+.align-status.ok { color: var(--ok); }
+.align-status.err { color: var(--err); }
+.align-hint { color: var(--dim); font-size: 10px; line-height: 1.4; margin: 8px 0; }
+#flip-buttons {
+  display: grid; grid-template-columns: 1fr 1fr; gap: 4px; margin-top: 10px;
+}
+.flip-btn {
+  padding: 4px 6px; font-size: 10px; border-radius: 3px; border: 1px solid var(--border);
+  background: #1a1e26; color: var(--fg); cursor: pointer; font-family: inherit;
+  text-align: left; display: flex; justify-content: space-between; align-items: center;
+}
+.flip-btn:hover { background: #242932; }
+.flip-btn .sign { color: var(--dim); font-variant-numeric: tabular-nums; }
+.flip-btn.inverted .sign { color: var(--warn); }
+header { display: flex; align-items: center; gap: 12px; margin-bottom: 20px; }
+h1 { font-size: 15px; font-weight: 600; margin: 0; letter-spacing: 0.3px; }
+.dot {
+  width: 8px; height: 8px; border-radius: 50%;
+  background: var(--dim); box-shadow: 0 0 6px currentColor;
+}
+.dot.ok { background: var(--ok); color: var(--ok); }
+.dot.err { background: var(--err); color: var(--err); }
+.ts { color: var(--dim); margin-left: auto; font-variant-numeric: tabular-nums; }
+section { margin-bottom: 24px; }
+h2 {
+  font-size: 11px; font-weight: 600; text-transform: uppercase;
+  letter-spacing: 1px; color: var(--dim); margin: 0 0 8px;
+}
+table {
+  width: 100%; border-collapse: collapse; background: var(--panel);
+  border: 1px solid var(--border); border-radius: 6px; overflow: hidden;
+}
+th, td {
+  padding: 8px 10px; text-align: right; border-bottom: 1px solid var(--border);
+  font-variant-numeric: tabular-nums;
+}
+th {
+  background: #1a1e26; color: var(--dim); font-weight: 500;
+  font-size: 11px; text-transform: uppercase; letter-spacing: 0.5px;
+}
+td.id, th.id { text-align: left; }
+tr:last-child td { border-bottom: none; }
+.warn { color: var(--warn); }
+.err { color: var(--err); }
+canvas { display: block; margin-left: auto; }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <span id="dot" class="dot"></span>
+    <h1>SO-101 Telemetry</h1>
+    <span id="ts" class="ts">&mdash;</span>
+  </header>
+
+  <section class="sim-panel">
+    <div class="sim-layout">
+      <div class="sim-viewport-wrap">
+        <div id="viewport"></div>
+        <div id="sim-status" class="sim-status">loading model&hellip;</div>
+      </div>
+      <aside class="sim-side">
+        <label>Wrist pitch <input id="slider-wrist-pitch" type="range" min="0" max="4095" value="2048"></label>
+        <label>Wrist roll  <input id="slider-wrist-roll"  type="range" min="0" max="4095" value="2048"></label>
+        <label>Gripper     <input id="slider-gripper"     type="range" min="1500" max="2700" value="2048"></label>
+        <button id="engage-btn" class="engage" disabled>Engage</button>
+        <details class="align-section">
+          <summary>Calibrate</summary>
+          <p class="align-hint">Position the real arm to match the ghost, then click Capture. If a joint moves the wrong way when you wiggle it, click Flip for that joint.</p>
+          <button id="capture-home" class="align-save">Capture home</button>
+          <div id="flip-buttons"></div>
+          <div id="capture-status" class="align-status"></div>
+        </details>
+        <details class="align-section">
+          <summary>Fine-tune offsets</summary>
+          <div id="align-sliders"></div>
+          <div class="align-buttons">
+            <button id="align-save" class="align-save">Save</button>
+            <button id="align-reset" class="align-reset">Reset</button>
+          </div>
+          <div id="align-status" class="align-status"></div>
+        </details>
+      </aside>
+    </div>
+  </section>
+
+  <section>
+    <h2>Leader (IDs 7&ndash;12)</h2>
+    <table>
+      <thead><tr>
+        <th class="id">ID</th><th>Pos</th><th>Goal</th>
+        <th>Temp</th><th>Volt</th><th>Load</th>
+        <th>Temp 60s</th><th>Load 60s</th>
+      </tr></thead>
+      <tbody id="leader"></tbody>
+    </table>
+  </section>
+
+  <section>
+    <h2>Follower (IDs 1&ndash;6, wired order)</h2>
+    <table>
+      <thead><tr>
+        <th class="id">ID</th><th>Pos</th><th>Goal</th>
+        <th>Temp</th><th>Volt</th><th>Load</th>
+        <th>Temp 60s</th><th>Load 60s</th>
+      </tr></thead>
+      <tbody id="follower"></tbody>
+    </table>
+  </section>
+</div>
+
+<script src="/vendor/three.min.js"></script>
+<script src="/vendor/OrbitControls.js"></script>
+<script src="/vendor/STLLoader.js"></script>
+<script src="/vendor/URDFLoader.js"></script>
+<script src="/sim.js"></script>
+
+<script>
+const POLL_MS = 1000;
+const STALE_MS = 2000;
+let lastOk = 0;
+
+function tempClass(t) {
+  if (t === null || t === undefined) return "";
+  if (t >= 65) return "err";
+  if (t >= 50) return "warn";
+  return "";
+}
+function voltClass(v) {
+  if (v === null || v === undefined) return "";
+  if (v < 10.5 || v > 13.5) return "warn";
+  return "";
+}
+function loadClass(l) {
+  if (l === null || l === undefined) return "";
+  if (l >= 90) return "err";
+  if (l >= 70) return "warn";
+  return "";
+}
+function num(v, suffix, digits) {
+  if (v === null || v === undefined) return "\u2014";
+  const s = digits ? v.toFixed(digits) : String(Math.round(v));
+  return suffix ? s + suffix : s;
+}
+
+function sparkline(data, color) {
+  const dpr = window.devicePixelRatio || 1;
+  const w = 80, h = 20;
+  const c = document.createElement("canvas");
+  c.width = w * dpr; c.height = h * dpr;
+  c.style.width = w + "px"; c.style.height = h + "px";
+  const ctx = c.getContext("2d");
+  ctx.scale(dpr, dpr);
+  if (!data || data.length < 2) return c;
+  const min = Math.min.apply(null, data);
+  const max = Math.max.apply(null, data);
+  const range = max - min || 1;
+  ctx.strokeStyle = color;
+  ctx.lineWidth = 1;
+  ctx.beginPath();
+  data.forEach(function (v, i) {
+    const x = (i / (data.length - 1)) * (w - 2) + 1;
+    const y = h - 1 - ((v - min) / range) * (h - 2);
+    if (i === 0) ctx.moveTo(x, y); else ctx.lineTo(x, y);
+  });
+  ctx.stroke();
+  return c;
+}
+
+function cell(text, cls) {
+  const td = document.createElement("td");
+  td.textContent = text;
+  if (cls) td.className = cls;
+  return td;
+}
+
+function row(m) {
+  const tr = document.createElement("tr");
+
+  const idCell = document.createElement("td");
+  idCell.className = "id";
+  idCell.textContent = String(m.id);
+  tr.appendChild(idCell);
+
+  tr.appendChild(cell(num(m.pos)));
+  tr.appendChild(cell(m.role === "leader" ? "\u2014" : num(m.goal)));
+  tr.appendChild(cell(num(m.temp, "\u00b0C"), tempClass(m.temp)));
+  tr.appendChild(cell(num(m.volt, "V", 1), voltClass(m.volt)));
+  tr.appendChild(cell(num(m.load, "%"), loadClass(m.load)));
+
+  const tempSparkTd = document.createElement("td");
+  tempSparkTd.appendChild(sparkline(m.temp_history, "#f0b429"));
+  tr.appendChild(tempSparkTd);
+
+  const loadSparkTd = document.createElement("td");
+  loadSparkTd.appendChild(sparkline(m.load_history, "#4c8df6"));
+  tr.appendChild(loadSparkTd);
+
+  return tr;
+}
+
+async function tick() {
+  try {
+    const r = await fetch("/api/state", { cache: "no-store" });
+    if (!r.ok) throw new Error("status " + r.status);
+    const data = await r.json();
+    lastOk = Date.now();
+    window.dispatchEvent(new CustomEvent('so101:state', { detail: data }));
+    const leader = document.getElementById("leader");
+    const follower = document.getElementById("follower");
+    const leaderRows = data.motors.filter(function (m) { return m.role === "leader"; }).map(row);
+    const followerRows = data.motors.filter(function (m) { return m.role === "follower"; }).map(row);
+    leader.replaceChildren.apply(leader, leaderRows);
+    follower.replaceChildren.apply(follower, followerRows);
+    const d = new Date(data.now * 1000);
+    document.getElementById("ts").textContent = d.toTimeString().slice(0, 8);
+  } catch (e) {
+    /* keep previous values on screen — see STALE_MS check below */
+  }
+  const fresh = Date.now() - lastOk < STALE_MS;
+  document.getElementById("dot").className = "dot " + (fresh ? "ok" : "err");
+}
+
+tick();
+setInterval(tick, POLL_MS);
+</script>
+</body>
+</html>

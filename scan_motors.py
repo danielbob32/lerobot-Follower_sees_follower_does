@@ -3,7 +3,7 @@ import time
 import struct
 
 # --- CONFIGURATION ---
-SERIAL_PORT = 'COM8'  # <--- Check your port!
+SERIAL_PORT = 'COM7'  # <--- Check your port!
 BAUD_RATE = 1000000  # Default for Waveshare/ST3215
 
 
